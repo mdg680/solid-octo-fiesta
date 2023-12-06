@@ -1,0 +1,14 @@
+name: Hello world workflow
+on: 
+  push:
+  workflow_dispatch:
+jobs:
+  my-job:
+    runs-on: ubuntu-latest
+    container: gradle:6-jdk11
+    steps:
+      - name: Clone-down
+        uses: actions/checkout@v4
+
+      - name: List files in the repository
+        run: ci/build-app.sh
