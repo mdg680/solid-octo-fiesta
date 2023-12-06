@@ -1,0 +1,60 @@
+name: Hello world workflow
+on: 
+  push:
+  workflow_dispatch:
+env:
+  docker_username: ${{ github.actor }}
+  docker_password: ${{ secrets.GITHUB_TOKEN }}
+  GITHUB_COMMIT: ${{ github.sha }}
+jobs:
+  Clone-down:
+    name: Clone down repo
+    runs-on: ubuntu-latest
+    container: gradle:6-jdk11
+    steps:
+      - uses: actions/checkout@v4
+      - name: Upload repo
+        uses: actions/upload-artifact@v3
+        with:
+          name: code
+          path: .
+  Build:
+    runs-on: ubuntu-latest
+    needs: Clone-down
+    container: gradle:6-jdk11
+    steps:
+      - name: Download code
+        uses: actions/download-artifact@v3
+        with:
+          name: code
+          path: .
+      - name: Build with gradle
+        run: chmod +x ci/build-app.sh && ci/build-app.sh
+      - name: Test with gradle
+        run: chmod +x ci/unit-test-app.sh && ci/unit-test-app.sh
+      - name: Upload repo
+        uses: actions/upload-artifact@v3
+        with:
+          name: code 
+          path: .
+      - name: Upload Jar
+        uses: actions/upload-artifact@v3
+        with:
+          name: Jar
+          path: app/build/libs/app-0.1-all.jar
+
+  Docker-image:
+    runs-on: ubuntu-latest
+    needs: Build
+    permissions:
+      packages: write
+    steps:
+      - name: Download code/jar
+        uses: actions/download-artifact@v3
+        with:
+          name: code
+          path: .
+      - name: Build docker
+        run: chmod +x ci/build-docker.sh && ci/build-docker.sh
+      - name: Push docker image
+        run: chmod +x ci/push-docker.sh && ci/push-docker.sh
